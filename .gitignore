@@ -1,0 +1,70 @@
+# Compiled binaries
+*.exe
+*.dll
+*.so
+*.dylib
+*.a
+*.lib
+
+# Build directory
+build/
+bin/
+obj/
+
+# Object files
+*.o
+*.obj
+
+# Debug files
+*.pdb
+*.ilk
+
+# Visual Studio files
+.vs/
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.sln
+*.suo
+*.user
+*.aps
+*.pch
+*.vspscc
+*.vssscc
+
+# Code::Blocks
+*.depend
+*.layout
+*.cbp
+
+# CLion
+.idea/
+cmake-build-*/
+
+# Temporary files
+*.tmp
+*.temp
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+
+# Cache
+*.cache
+
+# Dependencies (keep DLLs that are needed for runtime)
+# Comment out these lines if you want to include runtime DLLs
+# glew32.dll
+# glfw3.dll
+# libgcc_s_seh-1.dll
+# libstdc++-6.dll
+# libwinpthread-1.dll

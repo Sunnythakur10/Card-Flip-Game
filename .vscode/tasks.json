@@ -1,0 +1,86 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Install Dependencies (Windows)",
+			"type": "shell",
+			"command": "echo",
+			"args": [
+				"To run this project, please install development tools:",
+				"\n1. Install MSYS2 from https://www.msys2.org/",
+				"\n2. In MSYS2 terminal, run:",
+				"\n   pacman -S mingw-w64-x86_64-gcc",
+				"\n   pacman -S mingw-w64-x86_64-glfw",
+				"\n   pacman -S mingw-w64-x86_64-glew",
+				"\n   pacman -S mingw-w64-x86_64-glm",
+				"\n   pacman -S make",
+				"\n3. Add C:\\msys64\\mingw64\\bin to your PATH",
+				"\n4. Restart VS Code",
+				"\n5. Run the 'Build Memory Card Game' task"
+			],
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Build Memory Card Game",
+			"type": "shell",
+			"command": "make",
+			"args": [],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": [],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "shared"
+			}
+		},
+		{
+			"label": "Build with PowerShell Script",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-ExecutionPolicy", "Bypass", 
+				"-File", "${workspaceFolder}/build.ps1"
+			],
+			"group": "build",
+			"problemMatcher": [],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			}
+		},
+		{
+			"label": "Run Memory Card Game",
+			"type": "shell",
+			"command": "${workspaceFolder}/memory_card_game.exe",
+			"args": [],
+			"group": "test",
+			"dependsOn": "Build Memory Card Game",
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": true,
+				"panel": "new"
+			}
+		},
+		{
+			"label": "Clean Build",
+			"type": "shell",
+			"command": "make",
+			"args": ["clean"],
+			"group": "build",
+			"options": {
+				"cwd": "${workspaceFolder}"
+			}
+		}
+	]
+}
