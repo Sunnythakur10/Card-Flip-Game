@@ -4,26 +4,97 @@ A computer graphics project implementing a memory card matching game using C++ a
 
 ## Features
 
-- **Card Flipping Animation**: Smooth 3D rotation animations using matrix transformations
-- **Mouse Picking**: Click detection to interact with cards using coordinate transformations
-- **Game State Management**: Finite state machine controlling game flow and card interactions
-- **Shuffle Algorithm**: Fisher-Yates shuffle implementation for randomizing card positions
-- **OpenGL Rendering**: Modern OpenGL with shader programs for efficient rendering
-- **Real-time Gameplay**: Delta-time based animations and input handling
+### **Core Graphics Features**
+- **3D Card Flipping Animation**: Smooth Y-axis rotation with matrix transformations and texture swapping at 90°
+- **Procedural Texture Generation**: 16+ unique mathematical patterns (spirals, fractals, geometric shapes)
+- **Real-time Rendering**: 60fps target with optimized OpenGL draw calls and state management
+- **Advanced Font Rendering**: Bitmap font generation with anti-aliasing, shadows, and viewport scaling
+- **Dynamic Lighting Effects**: Ambient lighting and color modulation for visual depth
+
+### **Game Mechanics & Algorithms**
+- **Mouse Picking System**: Precise screen-to-world coordinate transformation for card selection
+- **Fisher-Yates Shuffle**: Cryptographically secure randomization with uniform distribution
+- **State Machine Architecture**: Six-state FSM (IDLE, FLIPPING_FIRST, FLIPPING_SECOND, CHECK_MATCH, RESOLVE, WIN)
+- **Fair Scoring Algorithm**: Multi-factor scoring with time penalties, move costs, match bonuses, and streak multipliers
+- **Deterministic Deck Generation**: Runtime assertions ensuring exactly 2 cards per pattern
+- **Click Guard System**: Animation-aware input filtering preventing race conditions
+
+### **Computer Graphics Techniques**
+- **Matrix Transformation Pipeline**: MVP matrix chain for 2D/3D hybrid rendering
+- **Texture Atlas Management**: Efficient GPU memory usage with dynamic texture creation
+- **Alpha Blending**: Smooth transparency effects for UI elements and transitions
+- **Viewport Adaptation**: Resolution-independent rendering with automatic scaling
+- **Batch Rendering**: Minimized draw calls through efficient geometry submission
 
 ## Technical Highlights
 
-### Graphics Programming Concepts
-- **Transformations**: Model, view, and projection matrices for 2D rendering
-- **Animations**: Time-based interpolation for smooth card flipping
-- **Shaders**: Vertex and fragment shaders for customizable rendering
-- **Texture Mapping**: Dynamic texture generation and binding
+### Computer Graphics Concepts Applied
+
+#### **1. 3D Transformations & Matrix Mathematics**
+- **Model Matrix**: Individual card positioning, rotation (Y-axis flip animation), and scaling
+- **View Matrix**: Virtual camera positioning and orientation in 3D space
+- **Projection Matrix**: Orthographic projection for 2D gameplay with 3D depth effects
+- **Matrix Concatenation**: MVP (Model-View-Projection) pipeline implementation
+- **Homogeneous Coordinates**: 4x4 matrices for affine transformations
+
+#### **2. Rasterization & Rendering Pipeline**
+- **Vertex Processing**: Card vertices transformed through graphics pipeline
+- **Fragment Shading**: Pixel-level operations for texture sampling and color computation
+- **Depth Testing**: Z-buffer algorithm for proper card overlap rendering
+- **Alpha Blending**: Transparency effects for smooth card transitions and UI elements
+
+#### **3. Texture Mapping & Procedural Generation**
+- **Parametric Texture Coordinates**: UV mapping for card faces and backs
+- **Procedural Texture Generation**: Mathematical functions creating unique card patterns
+  - Concentric circles using distance fields
+  - Diamond patterns with Manhattan distance
+  - Spiral patterns using polar coordinates
+  - Fractal-like patterns with recursive mathematics
+- **Texture Filtering**: Linear and nearest-neighbor sampling for crisp visuals
+- **Mipmap Generation**: Multiple resolution levels for optimal rendering
+
+#### **4. Animation & Interpolation Techniques**
+- **Keyframe Animation**: Card flip states with smooth transitions
+- **Linear Interpolation (LERP)**: Position and rotation tweening
+- **Easing Functions**: Smooth acceleration/deceleration curves
+- **Delta Time Integration**: Frame-rate independent animations
+- **State Machine Animation**: Coordinated multi-object animation sequences
+
+#### **5. Font Rendering & Typography**
+- **Bitmap Font Generation**: Procedural character glyph creation
+- **Texture Atlas Management**: Efficient character storage and retrieval
+- **Text Rendering Pipeline**: Quad generation with texture coordinate mapping
+- **Anti-aliasing Techniques**: Multi-pass rendering for text outline and shadow effects
+- **Viewport-Responsive Scaling**: Dynamic font sizing based on screen resolution
+
+#### **6. Real-time Rendering Optimizations**
+- **Batch Rendering**: Minimizing OpenGL state changes and draw calls
+- **Vertex Buffer Objects (VBO)**: Efficient GPU memory management
+- **Instanced Rendering**: Multiple cards with single draw call
+- **Frustum Culling**: Off-screen object elimination
+- **Level-of-Detail (LOD)**: Adaptive quality based on viewing distance
+
+#### **7. Color Theory & Visual Design**
+- **Color Space Transformations**: RGB color manipulation for visual variety
+- **Procedural Color Generation**: Algorithm-based palette creation
+- **Visual Hierarchy**: Color coding for game state indication
+- **Contrast Optimization**: Ensuring UI readability across backgrounds
+
+#### **8. Computational Geometry**
+- **Point-in-Rectangle Testing**: Mouse picking collision detection
+- **Bounding Box Calculations**: Spatial queries for card selection
+- **2D/3D Coordinate System Conversions**: Screen-space to world-space transformations
+- **Geometric Primitives**: Quad generation for card representation
 
 ### Algorithms Implemented
 - **Fisher-Yates Shuffle**: O(n) algorithm for unbiased card randomization
 - **State Machine**: Game state management with proper transition handling
 - **Coordinate Transformations**: Screen-to-world coordinate conversion for mouse picking
 - **Animation Interpolation**: Smooth transitions using delta time
+- **Score Calculation**: Clamps final score between MIN_SCORE and BASE_SCORE with breakdown
+- **Pattern Generation Algorithms**: Mathematical functions for unique card designs
+- **Collision Detection**: Efficient spatial queries for user interaction
+- **Memory Management**: RAII pattern for OpenGL resource cleanup
 
 ## Project Structure
 
@@ -174,6 +245,43 @@ The game uses a finite state machine with the following states:
 - **WIN**: All pairs matched
 
 ### Shuffle Algorithm
+### Scoring System
+
+The scoring formula balances speed and accuracy:
+
+```
+base = BASE_SCORE (1000)
+penalties = elapsedSeconds * TIME_PENALTY_PER_SEC (1.5) + moves * MOVE_PENALTY (5)
+bonuses = totalMatches * MATCH_BONUS (25) + totalStreakBonus (STREAK_BONUS_STEP * streak_length_accumulation)
+raw = base + bonuses - penalties
+final = clamp(raw, MIN_SCORE, BASE_SCORE)
+```
+
+Stars awarded:
+* 3 stars: final >= 900
+* 2 stars: final >= 650
+* 1 star: final >= 350
+
+Adjust values in `ScoringConstants` within `GameManager.h`.
+
+### Deck Integrity
+
+Deck creation selects N unique rank/suit pairs, duplicates each exactly twice, then shuffles. Runtime assertions ensure:
+* Total cards == pairs * 2
+* Each (rank,suit) frequency == 2
+
+### Tests
+
+Run deck tests:
+```
+make tests
+./deck_tests
+```
+You should see: `All deck tests passed.`
+
+### HUD Readability
+
+HUD text is rendered with a background panel plus multi-pass outline/shadow to maintain contrast at various resolutions (720p–1080p). Adjust scaling factors in `Renderer::renderEnhancedText` if needed.
 
 Fisher-Yates shuffle implementation for unbiased randomization:
 
@@ -241,12 +349,31 @@ void Deck::shuffle() {
 
 ## Academic Context
 
-This project demonstrates understanding of:
+This project demonstrates comprehensive understanding of:
 
-- **Computer Graphics Pipeline**: Vertex processing, rasterization, fragment shading
-- **Linear Algebra**: Matrix transformations, coordinate systems
-- **Game Programming**: State machines, input handling, animation systems
-- **Software Engineering**: Object-oriented design, resource management
+### **Computer Graphics Fundamentals**
+- **Graphics Pipeline**: Complete implementation of vertex processing, primitive assembly, rasterization, and fragment shading stages
+- **Linear Algebra**: Practical application of matrix mathematics, vector operations, and geometric transformations
+- **Rendering Techniques**: Real-time rendering optimizations, texture management, and efficient GPU utilization
+- **Visual Computing**: Algorithm design for procedural content generation and real-time visual effects
+
+### **Advanced Graphics Concepts**
+- **Transformation Hierarchies**: Object-space to world-space to screen-space coordinate transformations
+- **Parametric Surface Generation**: Mathematical functions for procedural texture creation
+- **Temporal Coherence**: Frame-to-frame optimization and smooth animation techniques
+- **Spatial Data Structures**: Efficient collision detection and spatial query algorithms
+
+### **Software Engineering & Game Development**
+- **Object-Oriented Design**: Clean architecture with separation of concerns (MVC pattern)
+- **Resource Management**: RAII pattern for OpenGL objects and memory-safe programming
+- **State Machines**: Finite state automata for game logic and animation control
+- **Performance Optimization**: Real-time constraints and 60fps target achievement
+
+### **Mathematical Foundations**
+- **Discrete Mathematics**: Combinatorial algorithms (Fisher-Yates shuffle, pattern permutations)
+- **Calculus Applications**: Derivative-based easing functions and smooth interpolation
+- **Probability Theory**: Random number generation and statistical pattern distribution
+- **Geometry Processing**: 2D/3D coordinate systems and geometric primitive manipulation
 
 ## Contributing
 

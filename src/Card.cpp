@@ -143,108 +143,207 @@ bool Card::matches(const Card& other) const {
 }
 
 GLuint Card::createDetailedCardTexture(int rank, int suit, bool isFront) {
-    const int SIZE = 128; // Increased to 128x128 for more detail
+    const int SIZE = 128; // 128x128 for detailed patterns
     std::vector<unsigned char> textureData(SIZE * SIZE * 4); // RGBA
     
     if (isFront) {
-        // Create front card design with enhanced patterns
+        // Create unique pattern based on card's unique ID ensuring each rank-suit combo is unique
+        int uniquePatternId = rank + suit * 13; // Creates unique ID: suits 0-3, ranks 1-13
+        
+        // Base colors for different pattern families
+        struct PatternColor {
+            unsigned char r, g, b;
+        } patternColors[] = {
+            {220, 50, 50},   // Red
+            {50, 220, 50},   // Green  
+            {50, 50, 220},   // Blue
+            {220, 220, 50},  // Yellow
+            {220, 50, 220},  // Magenta
+            {50, 220, 220},  // Cyan
+            {255, 140, 0},   // Orange
+            {150, 75, 200},  // Purple
+            {255, 100, 150}, // Pink
+            {100, 255, 100}, // Light Green
+            {100, 100, 255}, // Light Blue
+            {255, 200, 100}, // Light Orange
+            {200, 100, 255}, // Light Purple
+            {100, 255, 200}, // Mint
+            {255, 255, 100}, // Light Yellow
+            {200, 200, 200}  // Light Gray
+        };
+        
+        PatternColor mainColor = patternColors[uniquePatternId % 16];
+        
         for (int y = 0; y < SIZE; y++) {
             for (int x = 0; x < SIZE; x++) {
                 int index = (y * SIZE + x) * 4;
                 
-                // Default cream white background
+                // White background
                 textureData[index + 0] = 250; // R
-                textureData[index + 1] = 248; // G
-                textureData[index + 2] = 245; // B
+                textureData[index + 1] = 250; // G
+                textureData[index + 2] = 250; // B
                 textureData[index + 3] = 255; // A
                 
-                // Outer border (4 pixels thick)
-                if (x < 4 || x >= SIZE-4 || y < 4 || y >= SIZE-4) {
-                    textureData[index + 0] = 40;  // Dark border
-                    textureData[index + 1] = 40;
-                    textureData[index + 2] = 40;
+                // Black border
+                if (x < 3 || x >= SIZE-3 || y < 3 || y >= SIZE-3) {
+                    textureData[index + 0] = 20;
+                    textureData[index + 1] = 20;
+                    textureData[index + 2] = 20;
                 }
-                // Inner gold border (2 pixels inside)
+                // Gold inner border
                 else if (x < 6 || x >= SIZE-6 || y < 6 || y >= SIZE-6) {
-                    textureData[index + 0] = 200; // Gold border
+                    textureData[index + 0] = 200;
                     textureData[index + 1] = 170;
                     textureData[index + 2] = 100;
                 }
-                
-                // Corner decorations (ornamental patterns)
-                if ((x < 20 && y < 20) || (x >= SIZE-20 && y < 20) || 
-                    (x < 20 && y >= SIZE-20) || (x >= SIZE-20 && y >= SIZE-20)) {
-                    if ((x % 4 == 0 || y % 4 == 0) && (x % 8 != 0 && y % 8 != 0)) {
-                        textureData[index + 0] = 180;
-                        textureData[index + 1] = 180;
-                        textureData[index + 2] = 180;
+                else {
+                    // Create unique patterns based on the pattern ID
+                    int centerX = SIZE / 2;
+                    int centerY = SIZE / 2;
+                    int dx = x - centerX;
+                    int dy = y - centerY;
+                    int dist = dx * dx + dy * dy;
+                    
+                    bool drawPattern = false;
+                    
+                    // Use a larger variety of patterns to ensure uniqueness for 52 different cards
+                    switch (uniquePatternId % 16) {
+                        case 0: // Concentric circles
+                            drawPattern = (dist % 400 < 50) && (dist > 100) && (dist < 2500);
+                            break;
+                        case 1: // Diamond pattern
+                            drawPattern = ((abs(dx) + abs(dy)) % 30 < 5) && (abs(dx) + abs(dy) < 50);
+                            break;
+                        case 2: // Cross pattern
+                            drawPattern = (abs(dx) < 8 && abs(dy) < 40) || (abs(dy) < 8 && abs(dx) < 40);
+                            break;
+                        case 3: // Star pattern
+                            drawPattern = (abs(dx) < 3 && abs(dy) < 35) || 
+                                         (abs(dy) < 3 && abs(dx) < 35) ||
+                                         (abs(dx - dy) < 3 && abs(dx) < 25) ||
+                                         (abs(dx + dy) < 3 && abs(dx) < 25);
+                            break;
+                        case 4: // Spiral pattern
+                            {
+                                float angle = atan2(dy, dx);
+                                float radius = sqrt(dist);
+                                drawPattern = (int(angle * 3 + radius * 0.1) % 10) < 2 && radius < 45;
+                            }
+                            break;
+                        case 5: // Triangle pattern
+                            drawPattern = (dy > 0) && (abs(dx) < (50 - dy)) && (dy < 45);
+                            break;
+                        case 6: // Hexagon pattern
+                            {
+                                float hexDist = abs(dx) + abs(dy * 0.866f + dx * 0.5f) + abs(dy * 0.866f - dx * 0.5f);
+                                drawPattern = (hexDist > 30 && hexDist < 40) || (hexDist > 15 && hexDist < 20);
+                            }
+                            break;
+                        case 7: // Flower pattern
+                            {
+                                float angle = atan2(dy, dx);
+                                float radius = sqrt(dist);
+                                float petalRadius = 25 + 10 * cos(angle * 6);
+                                drawPattern = (radius > petalRadius - 3 && radius < petalRadius + 3) && radius < 45;
+                            }
+                            break;
+                        case 8: // Grid pattern
+                            drawPattern = ((dx % 15 < 3) || (dy % 15 < 3)) && (abs(dx) < 40 && abs(dy) < 40);
+                            break;
+                        case 9: // Waves pattern
+                            {
+                                float wave = sin(dx * 0.2f) * 8;
+                                drawPattern = (abs(dy - wave) < 4) && (abs(dx) < 45);
+                            }
+                            break;
+                        case 10: // Checkerboard
+                            drawPattern = ((dx/10 + dy/10) % 2 == 0) && (abs(dx) < 40 && abs(dy) < 40);
+                            break;
+                        case 11: // Concentric squares
+                            {
+                                int maxDist = std::max(abs(dx), abs(dy));
+                                drawPattern = (maxDist % 12 < 3) && (maxDist > 10) && (maxDist < 45);
+                            }
+                            break;
+                        case 12: // Plus signs
+                            drawPattern = ((abs(dx) % 20 < 3 && abs(dy) % 20 < 12) || 
+                                         (abs(dy) % 20 < 3 && abs(dx) % 20 < 12)) && 
+                                         (abs(dx) < 45 && abs(dy) < 45);
+                            break;
+                        case 13: // Zigzag pattern
+                            {
+                                int zigzag = (dx + dy) % 30;
+                                drawPattern = (zigzag < 6 || zigzag > 24) && (abs(dx) < 45 && abs(dy) < 45);
+                            }
+                            break;
+                        case 14: // Circular dots
+                            {
+                                int dotX = ((dx + 60) / 20) * 20 - 60;
+                                int dotY = ((dy + 60) / 20) * 20 - 60;
+                                int dotDist = (dx - dotX) * (dx - dotX) + (dy - dotY) * (dy - dotY);
+                                drawPattern = (dotDist < 25) && (abs(dx) < 45 && abs(dy) < 45);
+                            }
+                            break;
+                        case 15: // Diagonal stripes
+                            drawPattern = ((dx - dy) % 15 < 4) && (abs(dx) < 45 && abs(dy) < 45);
+                            break;
+                    }
+                    
+                    if (drawPattern) {
+                        textureData[index + 0] = mainColor.r;
+                        textureData[index + 1] = mainColor.g;
+                        textureData[index + 2] = mainColor.b;
+                    }
+                    
+                    // Add rank and suit specific decorative elements for uniqueness
+                    if (rank <= 4) {
+                        // Small dots in corners for low ranks
+                        if (((x-15)*(x-15) + (y-15)*(y-15) < 16) ||
+                            ((x-(SIZE-15))*(x-(SIZE-15)) + (y-15)*(y-15) < 16) ||
+                            ((x-15)*(x-15) + (y-(SIZE-15))*(y-(SIZE-15)) < 16) ||
+                            ((x-(SIZE-15))*(x-(SIZE-15)) + (y-(SIZE-15))*(y-(SIZE-15)) < 16)) {
+                            textureData[index + 0] = mainColor.r / 2;
+                            textureData[index + 1] = mainColor.g / 2;
+                            textureData[index + 2] = mainColor.b / 2;
+                        }
+                    } else if (rank <= 8) {
+                        // Lines in corners for middle ranks
+                        if ((x < 20 && (y < 20 || y > SIZE-20)) || 
+                            (x > SIZE-20 && (y < 20 || y > SIZE-20))) {
+                            if ((x + y) % 4 < 2) {
+                                textureData[index + 0] = mainColor.r / 3;
+                                textureData[index + 1] = mainColor.g / 3;
+                                textureData[index + 2] = mainColor.b / 3;
+                            }
+                        }
+                    } else {
+                        // Squares in corners for high ranks
+                        if ((x < 18 && y < 18) || (x > SIZE-18 && y < 18) ||
+                            (x < 18 && y > SIZE-18) || (x > SIZE-18 && y > SIZE-18)) {
+                            textureData[index + 0] = mainColor.r / 4;
+                            textureData[index + 1] = mainColor.g / 4;
+                            textureData[index + 2] = mainColor.b / 4;
+                        }
                     }
                 }
                 
-                // Large central suit symbol
-                int centerX = SIZE / 2;
-                int centerY = SIZE / 2;
-                int dx = x - centerX;
-                int dy = y - centerY;
-                int dist = dx * dx + dy * dy;
-                
-                // Main suit symbol (larger circle)
-                if (dist < 400) { 
-                    switch (suit) {
-                        case 0: // Hearts (Red) - create heart shape
-                            if (dist < 350) {
-                                textureData[index + 0] = 220;
-                                textureData[index + 1] = 50;
-                                textureData[index + 2] = 50;
-                            }
-                            break;
-                        case 1: // Diamonds (Orange) - diamond shape
-                            if (abs(dx) + abs(dy) < 20) {
-                                textureData[index + 0] = 255;
-                                textureData[index + 1] = 140;
-                                textureData[index + 2] = 0;
-                            }
-                            break;
-                        case 2: // Clubs (Black) - club shape
-                            if (dist < 300 || (abs(dx) < 3 && dy > 0 && dy < 15)) {
-                                textureData[index + 0] = 30;
-                                textureData[index + 1] = 30;
-                                textureData[index + 2] = 30;
-                            }
-                            break;
-                        case 3: // Spades (Blue) - spade shape  
-                            if ((dist < 300 && dy <= 0) || (abs(dx) < 3 && dy > 0 && dy < 15)) {
-                                textureData[index + 0] = 30;
-                                textureData[index + 1] = 50;
-                                textureData[index + 2] = 150;
-                            }
-                            break;
+                // Rank and suit indicators in corners for better identification
+                if ((x < 25 && y < 30)) {
+                    // Top-left corner: rank indicator
+                    int rankPattern = (x/3 + y/3) % 13;
+                    if (rankPattern == ((rank - 1) % 13)) {
+                        textureData[index + 0] = 20;
+                        textureData[index + 1] = 20;
+                        textureData[index + 2] = 20;
                     }
-                }
-                
-                // Rank numbers in corners (more detailed)
-                if (x < 24 && y < 30) { // Top-left corner
-                    int rankPattern = (x / 3) + (y / 3) * 8;
-                    if (rankPattern % 13 == rank % 13 && rankPattern % 7 == 0) {
-                        textureData[index + 0] = 60;
-                        textureData[index + 1] = 60; 
-                        textureData[index + 2] = 60;
-                    }
-                }
-                if (x >= SIZE-24 && y >= SIZE-30) { // Bottom-right corner (upside down)
-                    int rankPattern = ((SIZE-x) / 3) + ((SIZE-y) / 3) * 8;
-                    if (rankPattern % 13 == rank % 13 && rankPattern % 7 == 0) {
+                } else if ((x >= SIZE-25 && y >= SIZE-30)) {
+                    // Bottom-right corner: suit indicator
+                    int suitPattern = (x/4 + y/4) % 4;
+                    if (suitPattern == suit) {
                         textureData[index + 0] = 60;
                         textureData[index + 1] = 60;
                         textureData[index + 2] = 60;
                     }
-                }
-                
-                // Subtle background pattern
-                if ((x + y) % 16 == 0 && x > 20 && x < SIZE-20 && y > 20 && y < SIZE-20) {
-                    textureData[index + 0] = std::max(0, (int)textureData[index + 0] - 5);
-                    textureData[index + 1] = std::max(0, (int)textureData[index + 1] - 5);  
-                    textureData[index + 2] = std::max(0, (int)textureData[index + 2] - 5);
                 }
             }
         }

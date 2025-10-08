@@ -65,6 +65,9 @@ public:
             return false;
         }
         
+        // Set viewport dimensions for proper font scaling
+        renderer.setProjectionMatrix(WINDOW_WIDTH, WINDOW_HEIGHT);
+        
         // Initialize input manager
         inputManager = std::make_unique<InputManager>(window);
         

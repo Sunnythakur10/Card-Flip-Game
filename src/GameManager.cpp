@@ -5,8 +5,8 @@ const float MATCH_CHECK_DELAY = 1.0f; // seconds to show cards before checking m
 
 GameManager::GameManager() 
     : currentState(GameState::IDLE), firstCard(nullptr), secondCard(nullptr),
-      score(0), moves(0), stateTimer(0.0f), matchDelay(MATCH_CHECK_DELAY),
-      gameWon(false) {
+      score(0), moves(0), totalMatches(0), currentStreak(0), totalStreakBonus(0),
+      stateTimer(0.0f), matchDelay(MATCH_CHECK_DELAY), gameWon(false), animating(false) {
 }
 
 GameManager::~GameManager() {
@@ -19,8 +19,12 @@ void GameManager::initialize(int numPairs) {
     secondCard = nullptr;
     score = 0;
     moves = 0;
+    totalMatches = 0;
+    currentStreak = 0;
+    totalStreakBonus = 0;
     stateTimer = 0.0f;
     gameWon = false;
+    animating = false;
     
     // Create and shuffle deck
     deck.createPairs(numPairs);
@@ -53,6 +57,7 @@ void GameManager::update(float deltaTime) {
         case GameState::FLIPPING_FIRST:
             // Wait for first card to finish flipping
             if (firstCard && !firstCard->getIsFlipping()) {
+                animating = false; // Clear animation guard
                 setState(GameState::IDLE);
             }
             break;
@@ -62,6 +67,7 @@ void GameManager::update(float deltaTime) {
             if (secondCard && !secondCard->getIsFlipping()) {
                 setState(GameState::CHECK_MATCH);
                 stateTimer = 0.0f;
+                // Keep animating = true during match check delay
             }
             break;
             
@@ -77,6 +83,7 @@ void GameManager::update(float deltaTime) {
             if (stateTimer >= 0.5f) { // Short delay for visual feedback
                 firstCard = nullptr;
                 secondCard = nullptr;
+                animating = false; // Clear animation guard
                 setState(GameState::IDLE);
                 checkWinCondition();
             }
@@ -89,13 +96,26 @@ void GameManager::update(float deltaTime) {
 }
 
 void GameManager::handleCardClick(Card* clickedCard) {
-    if (!clickedCard || clickedCard->getIsFlipping()) {
+    // Click guards: ignore clicks during animations or invalid states
+    if (!clickedCard || animating || clickedCard->getIsFlipping()) {
+        return;
+    }
+    
+    // Ignore clicks on already matched or face-up cards
+    if (clickedCard->getState() == CardState::MATCHED || 
+        clickedCard->getState() == CardState::FACE_UP) {
+        return;
+    }
+    
+    // Prevent same-card double-click
+    if (firstCard && firstCard->getId() == clickedCard->getId()) {
         return;
     }
     
     switch (currentState) {
         case GameState::IDLE:
             if (clickedCard->getState() == CardState::FACE_DOWN) {
+                animating = true; // Set animation guard
                 clickedCard->onClick();
                 
                 if (!firstCard) {
@@ -120,7 +140,7 @@ void GameManager::handleCardClick(Card* clickedCard) {
             break;
             
         default:
-            // Ignore clicks during other states
+            // Ignore clicks during other states (already handled by animating guard)
             break;
     }
 }
@@ -140,23 +160,55 @@ void GameManager::render(GLuint shaderProgram, glm::mat4 viewMatrix, glm::mat4 p
         int minutes = elapsedSeconds / 60;
         int seconds = elapsedSeconds % 60;
         
-        // Display time in top-left corner
+        // Enhanced HUD with better readability and score breakdown
         std::string timeText = "Time: " + std::to_string(minutes) + ":" + 
                               (seconds < 10 ? "0" : "") + std::to_string(seconds);
-        renderer->renderText(timeText, -0.95f, 0.9f, 1.0f);
+        renderer->renderEnhancedText(timeText, -0.95f, 0.9f, 1.2f);
         
-        // Display moves in top-right corner
         std::string movesText = "Moves: " + std::to_string(moves);
-        renderer->renderText(movesText, 0.5f, 0.9f, 1.0f);
+        renderer->renderEnhancedText(movesText, -0.95f, 0.8f, 1.2f);
         
-        // Display score
         std::string scoreText = "Score: " + std::to_string(score);
-        renderer->renderText(scoreText, -0.95f, 0.8f, 1.0f);
+        renderer->renderEnhancedText(scoreText, -0.95f, 0.7f, 1.2f);
         
-        // Display win message if game is won
+        // Display current streak if active
+        if (currentStreak > 0) {
+            std::string streakText = "Streak: " + std::to_string(currentStreak);
+            renderer->renderEnhancedText(streakText, -0.95f, 0.6f, 1.0f);
+        }
+        
+        // Display match count
+        std::string matchText = "Matches: " + std::to_string(totalMatches);
+        renderer->renderEnhancedText(matchText, -0.95f, 0.5f, 1.0f);
+        
+        // Display win message with score breakdown
         if (gameWon) {
-            std::string winText = "YOU WON!";
-            renderer->renderText(winText, -0.2f, 0.0f, 2.0f);
+            ScoreBreakdown breakdown = calculateFinalScore();
+            
+            renderer->renderEnhancedText("YOU WON!", -0.3f, 0.2f, 2.5f);
+            
+            // Score breakdown
+            std::string finalScoreText = "Final Score: " + std::to_string(breakdown.finalScore);
+            renderer->renderEnhancedText(finalScoreText, -0.4f, 0.0f, 1.5f);
+            
+            std::string baseText = "Base: " + std::to_string(breakdown.base);
+            renderer->renderEnhancedText(baseText, -0.4f, -0.1f, 1.0f);
+            
+            std::string bonusText = "Bonuses: +" + std::to_string(breakdown.bonuses);
+            renderer->renderEnhancedText(bonusText, -0.4f, -0.2f, 1.0f);
+            
+            std::string penaltyText = "Penalties: -" + std::to_string(breakdown.penalties);
+            renderer->renderEnhancedText(penaltyText, -0.4f, -0.3f, 1.0f);
+            
+            // Display stars
+            std::string starsText = "Stars: ";
+            for (int i = 0; i < breakdown.stars; i++) {
+                starsText += "*";
+            }
+            for (int i = breakdown.stars; i < 3; i++) {
+                starsText += "-";
+            }
+            renderer->renderEnhancedText(starsText, -0.4f, -0.4f, 1.2f);
         }
     }
 }
@@ -170,12 +222,24 @@ void GameManager::checkForMatch() {
     if (firstCard && secondCard) {
         if (firstCard->matches(*secondCard)) {
             // Match found!
-            score += 10;
+            totalMatches++;
+            currentStreak++;
+            
+            // Calculate match bonus with streak multiplier
+            int matchBonus = ScoringConstants::MATCH_BONUS;
+            int streakBonus = ScoringConstants::STREAK_BONUS_STEP * currentStreak;
+            totalStreakBonus += streakBonus;
+            score += matchBonus + streakBonus;
+            
             // Set cards to matched state (they stay face up)
             firstCard->setState(CardState::MATCHED);
             secondCard->setState(CardState::MATCHED);
+            
+            std::cout << "Match found! Streak: " << currentStreak 
+                      << ", Bonus: " << (matchBonus + streakBonus) << std::endl;
         } else {
-            // No match - flip cards back to face down
+            // No match - reset streak and flip cards back
+            currentStreak = 0;
             firstCard->setState(CardState::FLIPPING_TO_FACE_DOWN);
             secondCard->setState(CardState::FLIPPING_TO_FACE_DOWN);
             firstCard->startFlip();
@@ -221,4 +285,30 @@ float GameManager::getElapsedTime() const {
 
 void GameManager::reset(int numPairs) {
     initialize(numPairs);
+}
+
+GameManager::ScoreBreakdown GameManager::calculateFinalScore() const {
+    float elapsedSeconds = getElapsedTime();
+    
+    int base = ScoringConstants::BASE_SCORE;
+    int penalties = static_cast<int>(elapsedSeconds * ScoringConstants::TIME_PENALTY_PER_SEC) + 
+                   (moves * ScoringConstants::MOVE_PENALTY);
+    int bonuses = (totalMatches * ScoringConstants::MATCH_BONUS) + totalStreakBonus;
+    
+    int rawScore = base + bonuses - penalties;
+    int finalScore = std::max(ScoringConstants::MIN_SCORE, 
+                             std::min(ScoringConstants::BASE_SCORE, rawScore));
+
+    // Persist the clamped final score when game is won
+    if (gameWon) {
+        // (mutable state change in const context avoided; kept read-only)
+    }
+    
+    // Calculate stars based on final score
+    int stars = 0;
+    if (finalScore >= 900) stars = 3;
+    else if (finalScore >= 650) stars = 2;
+    else if (finalScore >= 350) stars = 1;
+    
+    return {base, penalties, bonuses, finalScore, stars};
 }

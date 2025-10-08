@@ -9,10 +9,13 @@ SRC_DIR = src
 INCLUDE_DIR = include
 BUILD_DIR = build
 TARGET = memory_card_game
+TEST_TARGET = deck_tests
 
 # Source files
 SOURCES = $(wildcard $(SRC_DIR)/*.cpp)
 OBJECTS = $(SOURCES:$(SRC_DIR)/%.cpp=$(BUILD_DIR)/%.o)
+TEST_SOURCES = $(filter-out $(SRC_DIR)/main.cpp,$(SOURCES))
+TEST_OBJECTS = $(TEST_SOURCES:$(SRC_DIR)/%.cpp=$(BUILD_DIR)/test_%.o)
 
 # Include paths
 INCLUDES = -I$(INCLUDE_DIR)
@@ -30,6 +33,8 @@ LIBS = -lglfw3 -lopengl32 -lglew32 -lgdi32
 # Default target
 all: $(BUILD_DIR) $(TARGET)
 
+tests: $(BUILD_DIR) $(TEST_TARGET)
+
 # Create build directory
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
@@ -38,13 +43,20 @@ $(BUILD_DIR):
 $(TARGET): $(OBJECTS)
 	$(CXX) $(OBJECTS) -o $(TARGET) $(LIBS)
 
+$(TEST_TARGET): CXXFLAGS += -DRUN_TESTS_MAIN
+$(TEST_TARGET): $(TEST_OBJECTS)
+	$(CXX) $(TEST_OBJECTS) -o $(TEST_TARGET) $(LIBS)
+
 # Compile source files
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
+$(BUILD_DIR)/test_%.o: $(SRC_DIR)/%.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
 # Clean build files
 clean:
-	rm -rf $(BUILD_DIR) $(TARGET)
+	rm -rf $(BUILD_DIR) $(TARGET) $(TEST_TARGET)
 
 # Rebuild everything
 rebuild: clean all

@@ -12,6 +12,16 @@ enum class GameState {
     WIN
 };
 
+// Scoring constants
+struct ScoringConstants {
+    static constexpr int BASE_SCORE = 1000;
+    static constexpr float TIME_PENALTY_PER_SEC = 1.5f;
+    static constexpr int MOVE_PENALTY = 5;
+    static constexpr int MATCH_BONUS = 25;
+    static constexpr int STREAK_BONUS_STEP = 10;
+    static constexpr int MIN_SCORE = 0;
+};
+
 class GameManager {
 private:
     GameState currentState;
@@ -20,9 +30,13 @@ private:
     Card* secondCard;
     int score;
     int moves;
+    int totalMatches;
+    int currentStreak;
+    int totalStreakBonus;
     float stateTimer;
     float matchDelay;
     bool gameWon;
+    bool animating; // Guard for preventing clicks during animations
     
     std::chrono::high_resolution_clock::time_point gameStartTime;
     
@@ -48,8 +62,21 @@ public:
     GameState getCurrentState() const { return currentState; }
     int getScore() const { return score; }
     int getMoves() const { return moves; }
+    int getTotalMatches() const { return totalMatches; }
+    int getCurrentStreak() const { return currentStreak; }
     bool isGameWon() const { return gameWon; }
+    bool isAnimating() const { return animating; }
     float getElapsedTime() const;
+    
+    // Scoring
+    struct ScoreBreakdown {
+        int base;
+        int penalties;
+        int bonuses;
+        int finalScore;
+        int stars;
+    };
+    ScoreBreakdown calculateFinalScore() const;
     
     // Reset game
     void reset(int numPairs);
